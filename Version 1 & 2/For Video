@@ -1,0 +1,167 @@
+import os
+import cv2
+import sys
+import numpy as np
+from google.cloud.automl_v1beta1 import PredictionServiceClient
+from google.cloud import automl_v1beta1
+from google.cloud.automl_v1beta1.proto import service_pb2
+import shutil
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] ="C:\\Users\\Ray Ooi\\Desktop\\BAN.json"
+
+
+# READ FILE NAME
+def listdir():
+    vid_path = "C:\\Users\\Ray Ooi\\Desktop\\DROP VID"
+    vid_list = os.listdir(vid_path)
+
+    for file in vid_list:
+        vid_name = file
+        return vid_name
+
+
+# RENAME FILE
+def rename(old):
+    old_vid_name = "C:\\Users\\Ray Ooi\\Desktop\\DROP VID\\" + old
+    new_vid_name = "C:\\Users\\Ray Ooi\\Desktop\\DROP VID\\ANALYSIS.mp4"
+    os.renames(old_vid_name, new_vid_name)
+
+
+# AUTOML PREDICTION
+def get_prediction(content, project_id, model_id):
+    prediction_client = automl_v1beta1.PredictionServiceClient()
+
+    name = 'projects/{}/locations/us-central1/models/{}'.format(project_id, model_id)
+    payload = {'image': {'image_bytes': content}}
+    params = {}
+    request = prediction_client.predict(name, payload, params)
+
+    #Printing in neater format
+    labels = request.payload
+    image_class = labels[0].display_name    #get class
+    score_result = labels[0].classification
+    image_score = score_result.score        #get score
+
+    return image_class, image_score
+
+
+#MOVE AND RENAME IMAGES TO IMAGE ANALYSIS FOLDER
+def move_image(image_dir, image_class, image_score, current_frame):
+
+    str_current_frame = str(current_frame)
+    file_prompt = os.path.exists("C:\\Users\\Ray Ooi\\Desktop\\ImageAnalysis" + "\\" +image_class)
+    if (file_prompt == False):
+        os.makedirs("C:\\Users\\Ray Ooi\\Desktop\\ImageAnalysis\\" + image_class)
+
+    new_name = "C:\\Users\\Ray Ooi\\Desktop\\ImageAnalysis\\" + image_class + "\\" + "Frame-" + str_current_frame + "_" + image_class + "_(" + image_score + ").jpeg"
+    os.renames(image_dir, new_name)
+
+    print("Frame: " + str_current_frame + " is detected to be a/an " + image_class + " with a score of (" + image_score + ")." )
+
+
+vid_name = listdir()  # READ VIDEO NAME
+
+
+rename(vid_name)  # RENAME VIDEO NAME
+
+
+new_name = listdir()  # TAG NAME TO STRING
+
+
+# FRAME EXTRACTION
+new_name_dir = "C:\\Users\\Ray Ooi\\Desktop\\DROP VID\\ANALYSIS.mp4"
+path = "C:\\Users\\Ray Ooi\\Desktop\\VideoResult"
+
+file_prompt_1 = os.path.exists("C:\\Users\\Ray Ooi\\Desktop\\VideoResult")  #Create VideoResult Folder
+if (file_prompt_1 == False):
+    os.makedirs("C:\\Users\\Ray Ooi\\Desktop\\VideoResult")
+
+answer = False
+
+while (answer == False):
+
+    cap = cv2.VideoCapture(new_name_dir)
+    currentframe = 0
+    print("Please enter the frame interval to be captured:")
+    framerate = input()
+
+    while True:
+        ret, frame = cap.read()
+
+        if (ret == False):
+            print("Completed Conversion of Videos")
+            break
+
+        else:
+            if (currentframe % int(framerate) == 0):
+
+                name = 'C:\\Users\\Ray Ooi\\Desktop\\VideoResult\\' + str(currentframe) + '.jpeg'
+                print('Creating...' + name)
+                cv2.imwrite(name, frame)
+                currentframe += 1
+            else:
+                currentframe += 1
+    cap.release()
+
+    if (answer == False):
+        print("\nPlease check the results of conversion...")
+        print("\nWould you like to continue to Automl Classification?")
+        print("Please enter (y/n)")
+        ch = raw_input()
+        print (ch)
+
+        if (ch == "y"):
+            answer = True
+            print("\n"*30)
+
+        if (ch == "n"):
+            answer = False
+
+            vid_path_pic = "C:\\Users\\Ray Ooi\\Desktop\\VideoResult"
+            vid_pic_list = os.listdir(vid_path_pic)
+            picture_number = 0
+
+            for file in vid_pic_list:
+                frame = vid_pic_list[int(picture_number)]
+                picture_number +=1
+                os.remove("C:\\Users\\Ray Ooi\\Desktop\\VideoResult\\" + frame)
+
+            print("\n" * 30)
+
+
+# CONNECTION TO AUTOML GOOGLE CLOUD SERVICE
+vid_path_pic = "C:\\Users\\Ray Ooi\\Desktop\\VideoResult"
+vid_pic_list = os.listdir(vid_path_pic)
+picture_number = 0
+int(picture_number)
+current_frame_number = 0
+int(current_frame_number)
+
+
+shutil.rmtree("C:\\Users\\Ray Ooi\\Desktop\\ImageAnalysis")
+file_prompt_2 = os.path.exists("C:\\Users\\Ray Ooi\\Desktop\\ImageAnalysis")
+if (file_prompt_2 == False):
+    os.makedirs("C:\\Users\\Ray Ooi\\Desktop\\ImageAnalysis")
+
+for file in vid_pic_list:
+    frame = vid_pic_list[picture_number]
+
+    if __name__ == '__main__':
+        file_path = "C:\\Users\\Ray Ooi\\Desktop\\VideoResult\\" + frame
+        project_id = "spatial-airship-299312"
+        model_id = "ICN2876896363331715072"
+
+        with open(file_path, 'rb') as ff:
+            content = ff.read()
+
+        image_class, image_score = get_prediction(content, project_id, model_id)
+
+        str_class = str(image_class)
+
+        image_score = round(image_score, 5)
+        str_score = str(image_score)
+
+        move_image(file_path, str_class, str_score, current_frame_number)
+
+    picture_number += 1
+    current_frame_number = current_frame_number + framerate
