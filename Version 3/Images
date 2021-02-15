@@ -1,0 +1,114 @@
+import os
+import cv2
+import sys
+import numpy as np
+from google.cloud.automl_v1beta1 import PredictionServiceClient
+from google.cloud import automl_v1beta1
+from google.cloud.automl_v1beta1.proto import service_pb2
+import shutil
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "C:\\Users\\Ray Ooi\\Desktop\\BAN.json"
+
+def create(path):
+    file_prompt_1 = os.path.exists("C:\\Users\\Ray Ooi\\Desktop\\" + path)
+    if (file_prompt_1 == True):
+        shutil.rmtree("C:\\Users\\Ray Ooi\\Desktop\\" + path)
+    os.makedirs("C:\\Users\\Ray Ooi\\Desktop\\" + path)
+
+
+def bounding_box(labels, file_path):
+    img = cv2.imread(file_path)
+
+    first_x = labels[0].image_object_detection.bounding_box.normalized_vertices[0].x
+    first_y = labels[0].image_object_detection.bounding_box.normalized_vertices[0].y
+
+    second_x = labels[0].image_object_detection.bounding_box.normalized_vertices[1].x
+    second_y = labels[0].image_object_detection.bounding_box.normalized_vertices[1].y
+
+    height, width, channels = img.shape
+
+    ymin = int(max(1, (first_y * height)))
+    xmin = int(max(1, (first_x * width)))
+
+    ymax = int(min(height, (second_y * height)))
+    xmax = int(min(width, (second_x * width)))
+
+    cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0, 255, 0), 5)
+    cv2.imwrite(file_path, img)
+# AUTOML PREDICTION
+def get_prediction(content, project_id, model_id, file_path):
+    prediction_client = automl_v1beta1.PredictionServiceClient()
+
+    name = 'projects/{}/locations/us-central1/models/{}'.format(project_id, model_id)
+    payload = {'image': {'image_bytes': content}}
+    params = {}
+    request = prediction_client.predict(name, payload, params)
+
+    #Printing in neater format
+    labels = request.payload
+    defect = True
+
+
+    if not labels:
+        image_class = "No Defect"
+        image_score = 1.0
+
+        defect = False
+
+    if defect == True:
+
+        bounding_box(labels, file_path)
+        image_class = labels[0].display_name    #get class
+        score_result = labels[0].image_object_detection
+        image_score = score_result.score        #get score
+
+    return image_class, image_score
+
+#MOVE AND RENAME IMAGES TO IMAGE ANALYSIS FOLDER
+def move_image(image_dir, image_class, image_score, name):
+
+    new_name = "C:\\Users\\Ray Ooi\\Desktop\\ImageAnalysis\\" + image_class + "\\" + name + "_" + image_class + "_(" + image_score + ").jpeg"
+    os.renames(image_dir, new_name)
+
+    print(name + ": " + image_class + ", Score: " + image_score)
+
+
+vid_path = "C:\\Users\\Ray Ooi\\Desktop\\DROP IMG"
+vid_list = os.listdir(vid_path)
+number = 1
+create("Original IMG")
+create("ImageAnalysis")
+
+for file in vid_list:
+    vid_name = file
+    snumber = str(number)
+    old = "C:\\Users\\Ray Ooi\\Desktop\\DROP IMG\\" + vid_name
+    new = "C:\\Users\\Ray Ooi\\Desktop\\Original IMG\\Sample " + snumber + ".jpg"
+    shutil.copyfile(old, new)
+    number = number + 1
+
+path_pic = "C:\\Users\\Ray Ooi\\Desktop\\Original IMG"
+pic_list = os.listdir(path_pic)
+extension = 1
+
+for file in pic_list:
+    if __name__ == '__main__':
+        str_extension = str(extension)
+        file_path = "C:\\Users\\Ray Ooi\\Desktop\\Original IMG\\Sample " + str_extension + ".jpg"
+        project_id = "formidable-fort-303706"
+        model_id = "IOD4190716001500790784"
+
+        with open(file_path, 'rb') as ff:
+            content = ff.read()
+
+        image_class, image_score = get_prediction(content, project_id, model_id, file_path)
+
+        str_class = str(image_class)
+
+        image_score = round(image_score, 5)
+        str_score = str(image_score)
+
+        name = "Sample " + str_extension
+        extension = extension + 1
+
+        move_image(file_path, str_class, str_score, name)
