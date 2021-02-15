@@ -50,9 +50,9 @@ def get_prediction(content, project_id, model_id, file_path, array, defect_name)
 
 
 def crack(image):
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "C:\\Users\\Ray Ooi\\Desktop\\crack2.json"
-    project_id = "electric-medium-303108"
-    model_id = "IOD5103257875996737536"
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ENTER DIRECTORY TO MODEL'S AUTHENTICATION KEY"
+    project_id = "ENTER PROJ ID"
+    model_id = "ENTER MODEL ID"
     array = 0
 
     with open(image, 'rb') as ff:
@@ -63,9 +63,9 @@ def crack(image):
 
 
 def dent(image):
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "C:\\Users\\Ray Ooi\\Desktop\\dent.json"
-    project_id = "centering-brook-300508"
-    model_id = "IOD1203140598693888000"
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ENTER DIRECTORY TO MODEL'S AUTHENTICATION KEY"
+    project_id = "ENTER PROJ ID"
+    model_id = "ENTER MODEL ID"
     array = 1
 
     with open(image, 'rb') as ff:
@@ -76,9 +76,9 @@ def dent(image):
 
 
 def lightning(image):
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "C:\\Users\\Ray Ooi\\Desktop\\lightning2.json"
-    project_id = "green-cell-303108"
-    model_id = "IOD2718038923350638592"
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "ENTER DIRECTORY TO MODEL'S AUTHENTICATION KEY"
+    project_id = "ENTER PROJ ID"
+    model_id = "ENTER MODEL ID"
     array = 2
 
     with open(image, 'rb') as ff:
@@ -127,7 +127,7 @@ def check_multiple(number_defects, image_class, image_score, name):
         return name
 
 
-# ***************************Start of Program*********************************
+#***************************Start of Program*********************************
 
 create("Original IMG")
 
@@ -198,8 +198,8 @@ for name in list:
 
         indiv = [0, 0, 0]
 
-        check1 = False #crack(image_path)
-        check2 = False #dent(image_path)
+        check1 = crack(image_path)
+        check2 = dent(image_path)
         check3 = lightning(image_path)
 
         #Evaluation of results
